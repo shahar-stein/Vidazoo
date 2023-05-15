@@ -24,7 +24,6 @@ app.use((req, res, next) => {
   next(createError(404))
 })
 
-// TODO: Add your own error handler here.
 if (process.env.NODE_ENV === 'production') {
   // Do not send stack trace of error message when in production
   app.use((err, req, res, next) => {

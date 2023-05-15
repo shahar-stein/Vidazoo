@@ -1,73 +1,145 @@
-﻿//import React from "react";
-//import axios from "axios";
-
-// step 1: design basic structure, input (domain), button (to trigger the ads-info endpoint), table (to show ads-info response)
-// step 2: make the input work
-// step 3: make the button send an api request with the input value as the domain
-// step 4: save the response and show it in the table
-
-
-
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import axios from 'axios';
+import {
+  Box,
+  Button,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress
+
+} from '@mui/material';
+import { saveAs } from 'file-saver';
 
 function App() {
   const [domain, setDomain] = useState('');
-  const [advertisers, setAdvertisers] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState([]);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [search, setSearch] = useState('');
 
   const handleDomainChange = (event) => {
     setDomain(event.target.value);
   };
 
-  const handleGetAdsInfo = async () => {
-    setIsLoading(true);
-    setError(null);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!validateDomain(domain)) {
+      setErrorMessage('Invalid domain');
+      return;
+    }
+    setErrorMessage('');
+    setLoading(true);
+
     try {
       const response = await axios.get(`/api/ads-info?domain=${domain}`);
-      setAdvertisers(response.data);
+      setResults(response.data);
     } catch (error) {
       console.error(error);
-      setError('Failed to retrieve ads.txt file');
+      setErrorMessage('Failed to retrieve ads.txt file');
     }
-    setIsLoading(false);
+    setLoading(false);
   };
 
+  const validateDomain = (value) => {
+    const domainPattern = /^[a-zA-Z0-9-.]+\.[a-zA-Z]{2,}$/;
+    return domainPattern.test(value);
+  };
+
+  const handleSearch = (event) => {
+    setSearch(event.target.value);
+  };
+
+  const handleDownload = () => {
+    const json = JSON.stringify(results, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    saveAs(blob, `${domain}-results.json`);
+  };
+
+  const handleDownloadCSV = () => {
+    let csv = 'Domain,Count\n';
+    for (const domain of Object.keys(results)) {
+      csv += `${domain},${results[domain]}\n`;
+    }
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `${domain}-results.csv`);
+  };
+
+  const filteredResults = Object.fromEntries(Object.entries(results).filter(([key, value]) =>
+    key.toLowerCase().includes(search.toLowerCase())
+  ));
+
   return (
-    <div>
-      <label htmlFor="domain-input">Domain:</label>
-      <input
-        type="text"
-        id="domain-input"
-        value={domain}
-        onChange={handleDomainChange}
-      />
-      <button onClick={handleGetAdsInfo} disabled={!domain || isLoading}>
-        {isLoading ? 'Loading...' : 'Get Ads Info'}
-      </button>
-      {error && <div>Error: {error}</div>}
-      {Object.keys(advertisers).length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Domain</th>
-              <th>Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(advertisers).map(([domain, count]) => (
-              <tr key={domain}>
-                <td>{domain}</td>
-                <td>{count}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <Box p={2}>
+      <form onSubmit={handleSubmit}>
+        <TextField
+          label="Domain"
+          value={domain}
+          onChange={handleDomainChange}
+          variant="outlined"
+          fullWidth
+          error={!!errorMessage}
+          helperText={errorMessage}
+        />
+        <Box mt={2}>
+          <Button type="submit" variant="contained" disabled={loading}>
+            {loading ? <CircularProgress size={24} /> : 'Submit'}
+          </Button>
+          {Object.keys(results).length > 0 && (
+            <>
+              <Button variant="outlined" onClick={handleDownload}>
+                Download JSON
+              </Button>
+              <Button variant="outlined" onClick={handleDownloadCSV}>
+                Download CSV
+              </Button>
+            </>
+          )}
+        </Box>
+      </form>
+      {Object.keys(results).length > 0 && (
+        <Box mt={4}>
+          <Box display="flex" alignItems="center">
+            <TextField
+              label="Search"
+              value={search}
+              onChange={handleSearch}
+              variant="outlined"
+              size="small"
+            />
+
+          </Box>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>
+                      Domain
+                  </TableCell>
+                  <TableCell>
+                      Count
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Object.keys(filteredResults).map((domain) => (
+                  <TableRow key={domain}>
+                    <TableCell>{domain}</TableCell>
+                    <TableCell>{results[domain]}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 }
 
-export default App;
-
+export default App;              
