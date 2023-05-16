@@ -4,11 +4,11 @@
 * NVM
 
 ### How to run
-```
-nvm use
-npm install
-npm start
-```
+* `nvm use`
+* `npm install`
+* `npm start`
+* navigate in your browser to http://localhost:3000/
+
 
 ### Bonus Tasks Done
 * Add search to the results table
