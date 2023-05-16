@@ -55,7 +55,7 @@ function App() {
     setSearch(event.target.value);
   };
 
-  const handleDownload = () => {
+  const handleDownloadJson = () => {
     const json = JSON.stringify(results, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     saveAs(blob, `${domain}-results.json`);
@@ -92,7 +92,7 @@ function App() {
           </Button>
           {Object.keys(results).length > 0 && (
             <>
-              <Button variant="outlined" onClick={handleDownload}>
+              <Button variant="outlined" onClick={handleDownloadJson}>
                 Download JSON
               </Button>
               <Button variant="outlined" onClick={handleDownloadCSV}>
@@ -119,10 +119,10 @@ function App() {
               <TableHead>
                 <TableRow>
                   <TableCell>
-                      Domain
+                    Domain
                   </TableCell>
                   <TableCell>
-                      Count
+                    Count
                   </TableCell>
                 </TableRow>
               </TableHead>

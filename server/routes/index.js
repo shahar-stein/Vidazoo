@@ -1,10 +1,7 @@
 ﻿const express = require('express')
-
-const CONSTANTS = require('../constants')
-
 const axios = require('axios');
-
 const cache = require('memory-cache');
+const CONSTANTS = require('../constants')
 
 const router = express.Router()
 
