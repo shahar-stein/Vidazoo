@@ -11,7 +11,8 @@ import {
   TableHead,
   TableRow,
   Paper,
-  CircularProgress
+  CircularProgress,
+  TableSortLabel
 
 } from '@mui/material';
 import { saveAs } from 'file-saver';
@@ -22,6 +23,8 @@ function App() {
   const [results, setResults] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [search, setSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [sortColumn, setSortColumn] = useState('');
 
   const handleDomainChange = (event) => {
     setDomain(event.target.value);
@@ -38,7 +41,7 @@ function App() {
 
     try {
       const response = await axios.get(`/api/ads-info?domain=${domain}`);
-      setResults(response.data);
+      setResults(Object.entries(response.data));
     } catch (error) {
       console.error(error);
       setErrorMessage('Failed to retrieve ads.txt file');
@@ -56,23 +59,40 @@ function App() {
   };
 
   const handleDownloadJson = () => {
-    const json = JSON.stringify(results, null, 2);
+    const json = JSON.stringify(Object.fromEntries(results), null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     saveAs(blob, `${domain}-results.json`);
   };
 
   const handleDownloadCSV = () => {
     let csv = 'Domain,Count\n';
-    for (const domain of Object.keys(results)) {
-      csv += `${domain},${results[domain]}\n`;
+    for (const [domain, count] of results) {
+      csv += `${domain},${count}\n`;
     }
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     saveAs(blob, `${domain}-results.csv`);
   };
 
-  const filteredResults = Object.fromEntries(Object.entries(results).filter(([key, value]) =>
-    key.toLowerCase().includes(search.toLowerCase())
-  ));
+  const filteredAndSortedResults = results
+    .filter(([key]) => key.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      const [domainA, countA] = a;
+      const [domainB, countB] = b;
+
+      if (sortColumn === 'domain') {
+        return sortOrder === 'asc' ? domainA.localeCompare(domainB) : domainB.localeCompare(domainA);
+      } else if (sortColumn === 'count') {
+        return sortOrder === 'asc' ? countA - countB : countB - countA;
+      }
+
+      return 0;
+    });
+
+  const handleSort = (column) => {
+    const newSortOrder = sortColumn === column && sortOrder === 'asc' ? 'desc' : 'asc';
+    setSortOrder(newSortOrder);
+    setSortColumn(column);
+  };
 
   return (
     <Box p={2}>
@@ -90,7 +110,7 @@ function App() {
           <Button type="submit" variant="contained" disabled={loading}>
             {loading ? <CircularProgress size={24} /> : 'Submit'}
           </Button>
-          {Object.keys(results).length > 0 && (
+          {results.length > 0 && (
             <>
               <Button variant="outlined" onClick={handleDownloadJson}>
                 Download JSON
@@ -102,7 +122,7 @@ function App() {
           )}
         </Box>
       </form>
-      {Object.keys(results).length > 0 && (
+      {results.length > 0 && (
         <Box mt={4}>
           <Box display="flex" alignItems="center">
             <TextField
@@ -119,18 +139,30 @@ function App() {
               <TableHead>
                 <TableRow>
                   <TableCell>
-                    Domain
+                    <TableSortLabel
+                      active={sortColumn === 'domain'}
+                      direction={sortOrder}
+                      onClick={() => handleSort('domain')}
+                    >
+                      Domain
+                    </TableSortLabel>
                   </TableCell>
                   <TableCell>
-                    Count
+                    <TableSortLabel
+                      active={sortColumn === 'count'}
+                      direction={sortOrder}
+                      onClick={() => handleSort('count')}
+                    >
+                      Count
+                    </TableSortLabel>
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {Object.keys(filteredResults).map((domain) => (
+                {filteredAndSortedResults.map(([domain, count]) => (
                   <TableRow key={domain}>
                     <TableCell>{domain}</TableCell>
-                    <TableCell>{results[domain]}</TableCell>
+                    <TableCell>{count}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
